@@ -2,35 +2,45 @@
 ## Robust Multi-Modal Representation Learning for Agricultural Image + Metadata Classification
 
 ### Overview
-AgriSense Mini is a research-engineering portfolio project focused on agricultural classification from two complementary input streams: leaf imagery and structured field metadata. The repository compares classical tabular baselines, deep metadata models, image-only encoders, and a late-fusion multi-modal model built with PyTorch. The goal is to demonstrate disciplined modeling, evaluation, and communication rather than inflate the project into a paper or a production platform.
+AgriSense Mini is a portfolio-grade research-engineering project for multimodal agricultural classification. It combines image inputs and structured metadata, compares classical and deep baselines, and evaluates not just prediction quality but also calibration, mild distribution shift, and practical model inspection.
+
+This repository is intentionally positioned between a toy tutorial and a paper-scale research codebase. The emphasis is on clean PyTorch implementation, multimodal reasoning, strong evaluation discipline, and a polished demo that is easy to explain in an interview.
 
 ### Why this project matters
-Agricultural ML systems rarely operate in clean i.i.d. settings. Appearance can shift with season, imaging condition, and field context, while metadata can be incomplete or only weakly predictive on its own. This project frames multi-modal learning as a practical representation problem: learn image features, learn metadata representations, fuse them, and test whether fusion improves both predictive performance and robustness under a mild distribution shift.
+Agricultural computer vision rarely operates in clean i.i.d. settings. Leaf appearance changes with season, lighting, imaging setup, and environmental context. Metadata can be incomplete, weak on its own, or only useful in combination with image evidence. This project treats multimodal learning as a representation problem:
+
+- learn image embeddings from leaf imagery
+- learn metadata embeddings from structured tabular signals
+- fuse both modalities in a shared classifier
+- compare fusion against single-modality baselines
+- inspect confidence and robustness under a mild shift
 
 ### Key Features
-- PyTorch image-only classifier with a compact ResNet encoder
-- PyTorch metadata MLP and fused image + metadata model
+- PyTorch image-only classifier with a ResNet-based encoder
+- PyTorch metadata-only MLP baseline
+- PyTorch late-fusion model for image + metadata classification
 - scikit-learn metadata baseline with transparent feature importance
-- Reusable CSV + folder dataset pipeline with missing metadata handling
-- Robustness-aware evaluation with an explicit mild-shift holdout split
-- Calibration, confidence reporting, confusion matrices, and comparison tables
-- Lightweight Grad-CAM for image inspection and global metadata feature importance
-- Streamlit demo for interactive sample inspection
+- CSV + folder dataset pipeline with missing-metadata handling
+- Train / validation / test / mild-shift split support
+- Accuracy, precision, recall, macro F1, ROC-AUC, calibration, and confusion matrices
+- Lightweight explainability with Grad-CAM and metadata importance plots
+- Streamlit demo for interactive model inspection
+- Reliability guard in the UI for visibly shifted or out-of-scope uploaded images
 
 ### Project Structure
 ```text
 agrisense_mini/
 ├── app/                  # Streamlit demo and UI helpers
 ├── configs/              # YAML configuration
-├── data/                 # Sample agricultural-style images and metadata CSV
+├── data/                 # Sample images and metadata CSV
 ├── notebooks/            # Lightweight demo notebook
 ├── src/
 │   ├── data/             # Dataset, preprocessing, split logic
-│   ├── models/           # Image, metadata, and fusion architectures
+│   ├── evaluation/       # Metrics, calibration, robustness, reporting, plots
+│   ├── explainability/   # Grad-CAM and metadata feature importance
+│   ├── models/           # Image, metadata, and fusion models
 │   ├── training/         # Training entrypoints and trainer utilities
-│   ├── evaluation/       # Metrics, calibration, robustness, and plotting
-│   ├── explainability/   # Grad-CAM and metadata importance
-│   └── utils/            # Config, IO, seeds, sample-data generation
+│   └── utils/            # Config, IO, seeds, synthetic sample data generation
 ├── outputs/              # Saved models, figures, and reports
 ├── tests/                # Smoke tests for core components
 ├── requirements.txt
@@ -39,78 +49,152 @@ agrisense_mini/
 ```
 
 ### Dataset
-The repository includes a small synthetic agricultural-style sample dataset generated locally with Pillow. Images resemble simple leaf health patterns across three classes: `healthy`, `leaf_spot`, and `rust`. The metadata CSV contains categorical fields such as region, humidity band, season, soil type, imaging condition, and sensor view.
+The bundled dataset is synthetic and generated locally with Pillow. It contains three leaf-health classes:
 
-This metadata is synthetic and intended for portfolio demonstration only. The README and code make this explicit to avoid overstating scientific realism. The project structure is designed so the same pipeline can be pointed at a real agricultural folder dataset plus CSV with minimal changes.
+- `healthy`
+- `leaf_spot`
+- `rust`
+
+The metadata file contains structured agricultural-style fields such as:
+
+- `region`
+- `humidity_band`
+- `temperature_band`
+- `season`
+- `soil_type`
+- `imaging_condition`
+- `sensor_view`
+
+The current sample dataset is designed for a credible portfolio demonstration, not for scientific benchmarking. The images and metadata are synthetic, and the repository is explicit about that. The main value of the dataset is to exercise the full multimodal pipeline and support clear engineering and evaluation narratives.
 
 ### Models
 `scikit-learn metadata baseline`
-Uses logistic regression on imputed, one-hot encoded metadata to provide a transparent tabular baseline and feature-importance signal.
+Uses logistic regression on imputed and one-hot encoded metadata. This provides a transparent baseline and interpretable metadata importance signal.
 
 `PyTorch metadata-only model`
-Uses a compact MLP encoder over preprocessed metadata features to show a neural tabular baseline parallel to the classical model.
+Uses an MLP over preprocessed metadata features. This shows a neural metadata baseline parallel to the classical model.
 
 `PyTorch image-only model`
-Uses a ResNet-based encoder plus projection head and classifier to learn image embeddings from agricultural imagery.
+Uses a ResNet18-based encoder with a projection head and classifier. The backbone can use pretrained ImageNet weights for a stronger representation starting point.
 
 `PyTorch fused model`
-Encodes the image and metadata separately, concatenates the learned embeddings, and predicts with a fused classifier head. The model also exposes modality-specific logits for practical inspection of image vs metadata confidence.
+Uses separate encoders for image and metadata, concatenates the embeddings, and predicts with a shared head. It also exposes modality-specific logits for practical confidence inspection in the demo.
 
 ### Evaluation
-Evaluation covers:
-- Accuracy, macro precision, macro recall, and macro F1
-- Confusion matrices for each split
-- ROC-AUC when the split permits stable computation
-- Expected calibration error and calibration curves
-- Comparison across `sklearn_metadata`, `torch_metadata`, `image_model`, and `fusion_model`
-- A mild robustness check by holding out `imaging_condition=overcast` samples as a shift split
+The project evaluates four model families:
 
-The main intended takeaway is modest and credible: multi-modal fusion can improve predictive stability and confidence behavior relative to single-modality baselines, especially when image appearance shifts.
+1. `sklearn_metadata`
+2. `torch_metadata`
+3. `image_model`
+4. `fusion_model`
+
+The evaluation stack includes:
+
+- accuracy
+- macro precision / recall / F1
+- confusion matrix
+- ROC-AUC where applicable
+- expected calibration error
+- calibration curves
+- comparison tables across models and splits
+- a mild robustness check using `imaging_condition=overcast` as a held-out shift split
+
+This is not presented as a claim of state-of-the-art performance. The intended message is narrower and more credible: multimodal pipelines should be evaluated for both predictive quality and behavior under modest shift, and the engineering should make those tradeoffs visible.
 
 ### Demo
-Install dependencies and run the full workflow:
+The Streamlit app presents the project as an academic inspection dashboard rather than a product UI. It supports:
+
+- sample selection or image upload
+- editable metadata fields
+- model selection across metadata, image-only, and fusion variants
+- confidence profiles over classes
+- metadata feature-importance plots
+- Grad-CAM overlays for image-only predictions
+- modality confidence breakdowns for the fusion model
+- warnings for uploaded images that are visually shifted relative to the training distribution
+
+### Installation
+Create a virtual environment and install dependencies:
 
 ```bash
-pip install -r requirements.txt
-python -m src.training.train_metadata --config configs/default.yaml
-python -m src.training.train_image --config configs/default.yaml
-python -m src.training.train_fusion --config configs/default.yaml
-python -m src.evaluation.reporting --config configs/default.yaml
-python run_demo.py
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-The Streamlit app supports:
-- Sample selection or image upload
-- Editable metadata fields
-- Model selection across baseline and deep models
-- Prediction display with confidence
-- Metadata feature-importance visualization
-- Grad-CAM overlay for the image-only model
-- Fusion confidence breakdown via modality-specific logits
+### How to Run
+Train the full pipeline:
+
+```bash
+.\.venv\Scripts\python.exe -m src.training.train_metadata --config configs/default.yaml
+.\.venv\Scripts\python.exe -m src.training.train_image --config configs/default.yaml
+.\.venv\Scripts\python.exe -m src.training.train_fusion --config configs/default.yaml
+.\.venv\Scripts\python.exe -m src.evaluation.reporting --config configs/default.yaml
+```
+
+Launch the demo:
+
+```bash
+.\.venv\Scripts\python.exe run_demo.py
+```
+
+Run tests:
+
+```bash
+.\.venv\Scripts\python.exe -m pytest -q
+```
 
 ### Results
-The bundled synthetic sample dataset was trained locally to produce example artifacts under `outputs/`. On the standard test split:
+The current bundled run on the synthetic sample dataset produces the following standard test metrics:
 
 | Model | Accuracy | Macro F1 | ECE |
 | --- | ---: | ---: | ---: |
-| `sklearn_metadata` | 0.444 | 0.381 | 0.238 |
-| `torch_metadata` | 0.444 | 0.367 | 0.094 |
-| `image_model` | 0.667 | 0.556 | 0.455 |
-| `fusion_model` | 0.667 | 0.536 | 0.296 |
+| `sklearn_metadata` | 0.833 | 0.833 | 0.199 |
+| `torch_metadata` | 0.625 | 0.570 | 0.267 |
+| `image_model` | 1.000 | 1.000 | 0.0003 |
+| `fusion_model` | 1.000 | 1.000 | 0.0007 |
 
-On the mild shift split (`imaging_condition=overcast`), the image-only model dropped from `0.667` to `0.333` accuracy, while the fused model held at `0.667`. This is a small synthetic experiment, not a scientific claim, but it does support the project’s intended message: combining modalities can improve resilience when visual appearance shifts.
+On the mild shift split:
 
-Report files are written to `outputs/reports/`, figures to `outputs/figures/`, and model artifacts to `outputs/models/`. The combined comparison table is saved to `outputs/reports/comparison_table.csv`, and the shift-gap summary is saved to `outputs/reports/robustness_summary.json`.
+| Model | Accuracy | Macro F1 | ECE |
+| --- | ---: | ---: | ---: |
+| `sklearn_metadata` | 0.619 | 0.611 | 0.221 |
+| `torch_metadata` | 0.667 | 0.665 | 0.313 |
+| `image_model` | 1.000 | 1.000 | 0.0004 |
+| `fusion_model` | 1.000 | 1.000 | 0.0011 |
+
+These numbers should be interpreted carefully:
+
+- they come from a synthetic dataset bundled for demonstration
+- they show that the image branch is currently much stronger than the metadata branch
+- they are useful for illustrating the pipeline and evaluation logic
+- they are not evidence of real-world agricultural generalization
+
+Saved reports are written to:
+
+- `outputs/models/`
+- `outputs/figures/`
+- `outputs/reports/comparison_table.csv`
+- `outputs/reports/robustness_summary.json`
+
+### Reliability Notes
+The Streamlit app includes a simple similarity-based warning for uploaded images that do not visually resemble the training distribution. This is useful for highlighting that a classifier can still output a class label even when the input is visibly shifted or out of scope.
+
+For example:
+
+- a salad image may receive a class prediction, but that prediction is not meaningful because the input is outside the intended domain
+- a real leaf image may still trigger a warning if it differs significantly from the synthetic training distribution
+
+This is presented as a practical model-inspection feature, not as a full out-of-distribution detection system.
 
 ### CV-Ready Summary
 Designed and implemented a multi-modal agricultural AI pipeline combining PyTorch-based image and fusion models with scikit-learn baselines for metadata-driven classification. Evaluated representation quality, robustness under mild distribution shift, confidence behavior, and lightweight explainability, and built a Streamlit demo for interactive model inspection.
 
 ### Future Work
-- Replace synthetic metadata with real agronomic or geospatial covariates
-- Add self-supervised or contrastive pretraining for stronger image representations
-- Extend robustness evaluation to stronger out-of-distribution and missing-modality settings
-- Explore richer fusion mechanisms such as gated fusion or cross-attention
-- Investigate domain-specific foundation-model adaptation for agricultural imagery
+- Replace the synthetic sample set with a real agricultural image dataset plus real metadata
+- Add stronger missing-modality and out-of-distribution evaluation
+- Explore self-supervised or contrastive pretraining for the image encoder
+- Test richer fusion mechanisms such as gated fusion or cross-attention
+- Extend the pipeline toward temporal, geospatial, or domain-specific foundation-model settings
 
 ### License
 MIT
