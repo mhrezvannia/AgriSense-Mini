@@ -186,8 +186,6 @@ For example:
 
 This is presented as a practical model-inspection feature, not as a full out-of-distribution detection system.
 
-### CV-Ready Summary
-Designed and implemented a multi-modal agricultural AI pipeline combining PyTorch-based image and fusion models with scikit-learn baselines for metadata-driven classification. Evaluated representation quality, robustness under mild distribution shift, confidence behavior, and lightweight explainability, and built a Streamlit demo for interactive model inspection.
 
 ### Future Work
 - Replace the synthetic sample set with a real agricultural image dataset plus real metadata
