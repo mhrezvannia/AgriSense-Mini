@@ -1,0 +1,63 @@
+project:
+  name: AgriSense Mini
+  subtitle: Robust Multi-Modal Representation Learning for Agricultural Image + Metadata Classification
+
+paths:
+  image_dir: data/sample_data
+  metadata_csv: data/metadata/sample_metadata.csv
+  output_dir: outputs
+  model_dir: outputs/models
+  figure_dir: outputs/figures
+  report_dir: outputs/reports
+
+data:
+  id_col: sample_id
+  filename_col: image_filename
+  label_col: label
+  image_size: 160
+  batch_size: 24
+  num_workers: 0
+  categorical_columns:
+    - region
+    - humidity_band
+    - temperature_band
+    - season
+    - soil_type
+    - imaging_condition
+    - sensor_view
+  numeric_columns: []
+  split:
+    val_size: 0.15
+    test_size: 0.15
+    shift_column: imaging_condition
+    shift_values:
+      - overcast
+
+model:
+  num_classes: 3
+  class_names:
+    - healthy
+    - leaf_spot
+    - rust
+  image_embedding_dim: 128
+  metadata_hidden_dims:
+    - 64
+    - 32
+  fusion_hidden_dims:
+    - 128
+    - 64
+  dropout: 0.2
+  backbone: resnet18
+  pretrained_backbone: true
+
+training:
+  seed: 42
+  epochs: 15
+  patience: 5
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  device: auto
+
+evaluation:
+  calibration_bins: 10
+  top_k_features: 8
